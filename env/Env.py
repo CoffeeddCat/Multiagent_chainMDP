@@ -52,3 +52,5 @@ class Env:
 
     def reset(self):
         self.state = [0 for i in range(self.agent_number)]
+        reward = [0 for i in range(self.agent_number)]
+        return self.state, reward, sum(reward)
