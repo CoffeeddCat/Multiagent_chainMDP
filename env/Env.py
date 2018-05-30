@@ -1,9 +1,11 @@
 import copy
+import numpy as np
 
 class Env:
 
     def __init__(self, chain_length, agent_number, left_end_reward, right_end_reward):
         self.chain_length = chain_length
+        assert self.chain_length > 0
         self.agent_number = agent_number
         self.state = [0 for i in range(self.agent_number)]
         self.left_end_reward = left_end_reward
@@ -16,6 +18,7 @@ class Env:
         the function will return: 1.the position(state) after a move of all the agents
                                   2.the reward of all agents
                                   3.total reward
+                                  // 4.if the episode is ended
         '''
 
         state_after = copy.deepcopy(self.state)
@@ -30,5 +33,22 @@ class Env:
                 state_after[i] += move_range_right
             else:
                 state_after[i] += move_range_left
-        
+         
+        reward = [0 for i in range(self.agent_number)]
+        all_right_flag = True
+        for i in range(self.agent_number):
+            if state_after[i] == -1:
+                reward[i] += self.left_end_reward
+            if state_after[i] == self.chain_length-1:
+                continue
+            else:
+                all_right_flag = False
+
+        if all_right_flag == True:
+            for i in range(self.agent_number):
+                reward[i] += self.right_end_reward
+
+        return state_after, reward, sum(reward)
+
     def reset(self):
+        self.state = [0 for i in range(self.agent_number)]
