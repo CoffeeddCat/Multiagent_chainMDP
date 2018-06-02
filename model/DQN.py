@@ -1,4 +1,3 @@
-from model.mlp import mlp
 import tensorflow as tf
 import numpy as np
 import random
@@ -16,9 +15,10 @@ class DQN:
         batch_size=2000,
         epsilon_decrement=0.0005,
         epsilon_lower=0.2,
-        scope
+        scope,
+        sess
     ):
-        self.sess = tf.Session()
+        self.sess = sess
         self.scope = scope
         self.n_features = n_features
         self.batch_size = batch_size
@@ -30,6 +30,8 @@ class DQN:
 
         self.eval_input = tf.placeholder(tf.float32, shape=[None, self.n_features], name='eval_input')
         self.target_input = tf.placeholder(tf.float32, shape=[None, self.n_features], name='target_input')
+        self.done = tf.placeholder(tf.float32, shape=[None, ], name='done')
+        self.decays = tf.placeholder(tf.float32, shape=[None, ], name='decay')
         self.rewards = tf.placeholder(tf.float32, shape=[None, ], name='rewards')
 
         with tf.variable_scope(self.scope):
@@ -41,3 +43,27 @@ class DQN:
             self.eval_output = model(inputs=self.eval_input, n_output=n_actions, scope='eval_net', hiddens=hiddens)
             self.target_output = tf.stop_gradient(
                 model(inputs=self.target_input, n_output=n_actions, scope='target_net', hiddens=hiddens))
+
+        self.eval_output_selected = tf.reduce_sum(
+            self.eval_output * tf.one_hot(self.actions_selected, n_actions), axis=1)
+        self.eval_output_target = self.rewards + \
+            self.decays * tf.reduce_max(self.target_output, axis=1) * (1. - self.done)
+
+        self.loss = tf.reduce_mean(tf.squared_difference(self.eval_output_selected, self.eval_output_target))
+        self.train = tf.train.AdamOptimizer(learning_rate).minimize(self.loss)
+
+        self.eval_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope + '/eval_net')
+        self.target_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope + '/target_net')
+
+        self.update = [tf.assign(x, y) for x, y in zip(self.target_params, self.eval_params)]
+
+        self.sess.run(tf.global_variables_initializer())
+
+    def act():
+
+    def learn():
+
+    def store():
+
+    def process_data():
+
