@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import random
+import queue
 
 class DQN:
     def __init__(
@@ -24,6 +25,7 @@ class DQN:
         self.batch_size = batch_size
         self.decay = decay
         self.model = mlp
+        self.memory = queue.Queue()
 
         self.epsilon_lower = epsilon_lower
         self.epsilon_decrement = epsilon_decrement
@@ -59,11 +61,11 @@ class DQN:
 
         self.sess.run(tf.global_variables_initializer())
 
-    def act():
+    def act(self,state):
 
-    def learn():
+    def learn(self):
 
-    def store():
+    def store(self):
 
-    def process_data():
+    def process_data(self):
 
