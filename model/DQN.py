@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import random
 import queue
+import copy
 
 class DQN:
     def __init__(
@@ -17,7 +18,8 @@ class DQN:
         epsilon_decrement=0.0005,
         epsilon_lower=0.2,
         scope,
-        sess
+        sess,
+        order
     ):
         self.sess = sess
         self.scope = scope
@@ -26,6 +28,7 @@ class DQN:
         self.decay = decay
         self.model = mlp
         self.memory = queue.Queue()
+        self.order = order
 
         self.epsilon_lower = epsilon_lower
         self.epsilon_decrement = epsilon_decrement
@@ -48,8 +51,7 @@ class DQN:
 
         self.eval_output_selected = tf.reduce_sum(
             self.eval_output * tf.one_hot(self.actions_selected, n_actions), axis=1)
-        self.eval_output_target = self.rewards + \
-            self.decays * tf.reduce_max(self.target_output, axis=1) * (1. - self.done)
+        self.eval_output_target = self.rewards + self.decays * tf.reduce_max(self.target_output, axis=1) * (1. - self.done)
 
         self.loss = tf.reduce_mean(tf.squared_difference(self.eval_output_selected, self.eval_output_target))
         self.train = tf.train.AdamOptimizer(learning_rate).minimize(self.loss)
@@ -62,10 +64,30 @@ class DQN:
         self.sess.run(tf.global_variables_initializer())
 
     def act(self,state):
+        copy_state = copy.deepcopy(state)
+
+        #exchange
+        t = copy_state[self.order]
+        copy_state[self.order] = copy_state[0]
+        copy_state[0] = t
+
+        action = self.sess.run(self.eval_output, feed_dict={
+            self.eval_input: np.array(copy_state)
+            })
+
+        return action.tolist()
 
     def learn(self):
 
-    def store(self):
+    def store(self, data):
+        store_data = copy.deepcopy(data)
+
+        #exchange
+        t = store_data[self.order]
+        store_data[self.order] = store_data[0]
+        store_data[0] = t
+
+        self.memory.put(store_data)
 
     def process_data(self):
-
+        batch_size = self.batch_size

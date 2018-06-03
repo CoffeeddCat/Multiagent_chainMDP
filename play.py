@@ -24,7 +24,8 @@ if __name__ == '__main__':
             model = mlp,
             hiddens = hiddens,
             scope = 'number_' + str(i),
-            sess = sess
+            sess = sess,
+            order = i
             ))
     #set environment
     env = Env(chain_length = 20,
