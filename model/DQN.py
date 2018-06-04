@@ -4,6 +4,8 @@ import random
 import queue
 import copy
 
+from ..utils.utils import Memory
+
 class DQN:
     def __init__(
         self,
@@ -27,7 +29,7 @@ class DQN:
         self.batch_size = batch_size
         self.decay = decay
         self.model = mlp
-        self.memory = queue.Queue()
+        self.memory = Memory(memory_size)
         self.order = order
 
         self.epsilon_lower = epsilon_lower
@@ -35,6 +37,7 @@ class DQN:
 
         self.eval_input = tf.placeholder(tf.float32, shape=[None, self.n_features], name='eval_input')
         self.target_input = tf.placeholder(tf.float32, shape=[None, self.n_features], name='target_input')
+        self.actions_selected = tf.placeholder(tf.int32, shape=[None, ], name='actions_selected')
         self.done = tf.placeholder(tf.float32, shape=[None, ], name='done')
         self.decays = tf.placeholder(tf.float32, shape=[None, ], name='decay')
         self.rewards = tf.placeholder(tf.float32, shape=[None, ], name='rewards')
@@ -64,33 +67,59 @@ class DQN:
         self.sess.run(tf.global_variables_initializer())
 
     def act(self,state):
-        copy_state = copy.deepcopy(state)
+        if random.uniform(0,1) < self.epsilon:
+            return random.randint(0,1)
+        else:
+            copy_state = copy.deepcopy(state)
 
-        #exchange
-        t = copy_state[self.order]
-        copy_state[self.order] = copy_state[0]
-        copy_state[0] = t
+            #exchange
+            t = copy_state[self.order]
+            copy_state[self.order] = copy_state[0]
+            copy_state[0] = t
 
-        action = self.sess.run(self.eval_output, feed_dict={
-            self.eval_input: np.array(copy_state)
-            })
+            action = self.sess.run(self.eval_output, feed_dict={
+                self.eval_input: np.array(copy_state)
+                })
 
-        return action.tolist()
+            return np.argmax(action, axis = 1)[0].tolist()
 
     def learn(self):
+        state, action, reward, state_next, done, decays = self.process_data()
 
-    def store(self, data):
-        store_data = copy.deepcopy(data)
+        self.sess.run(self.train, feed_dict={
+                self.eval_input: state,
+                self.actions_selected: action,
+                self.rewards: reward,
+                self.target_input: state_next,
+                self.done: done,
+                self.decays: decays
+            })
 
+        if self.epsilon > self.epsilon_lower:
+            self.sess.run(self.update_epsilon)
+    def store(self, state, action, reward, state_after):
+
+        state_copy = copy.deepcopy(state)
+        state_after_copy = copy.deepcopy(state_after)
         #exchange
-        t = store_data[self.order]
-        store_data[self.order] = store_data[0]
-        store_data[0] = t
+        t = state_copy[self.order]
+        state_copy[self.order] = state_copy[0]
+        state_copy[0] = t
 
-        self.memory.put(store_data)
+        t = state_after_copy[self.order]
+        state_after_copy[self.order] = state_after_copy[0]
+        state_after_copy[0] = t
+
+        self.memory.store(np.array([state_copy, action, reward, state_after_copy]))
 
     def process_data(self):
         state, action, reward, state_next, done, decays = [], [], [], [], [], []
-        temp_data = np.random.choice(self.memory, batch_size)
+        temp = self.memory.sample(self.batch_size)
         for i in range(self.batch_size):
-            
+            state.append(temp[i][0])
+            action.append(temp[i][1])
+            reward.append(temp[i][2])
+            state_next.append(temp[i][3])
+            done.append(np.array(0))
+            decays.append(self.decay)
+        return state, action, reward, state_next, done, decays

@@ -54,8 +54,11 @@ if __name__ == '__main__':
                 action.append(ais[i].act(state))
             state_after, reward, total_reward = env.step(action)
 
+            for i in range(ai_number):
+                ais[i].store(state, action[i], reward[i], state_after)
+                
             state = state_after
-            scoreQueue.put(total_reward)
+            # scoreQueue.put(total_reward)
 
         if episode % 100 == 0: #every 100 epsiodes learn
             for i in range(ai_number):
