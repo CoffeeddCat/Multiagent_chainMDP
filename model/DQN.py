@@ -90,4 +90,7 @@ class DQN:
         self.memory.put(store_data)
 
     def process_data(self):
-        batch_size = self.batch_size
+        state, action, reward, state_next, done, decays = [], [], [], [], [], []
+        temp_data = np.random.choice(self.memory, batch_size)
+        for i in range(self.batch_size):
+            

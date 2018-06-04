@@ -8,6 +8,6 @@ def mlp(inputs, n_output, scope, hiddens, activation=tf.nn.relu):
             out = tf.contrib.layers.fully_connected(out, num_outputs=hidden, activation_fn = None)
             out = activation(out)
 
-        out = tf.contrib.layers.fully_connected(out, num_outputs=hidden, activation_fn = None)
+        out = tf.contrib.layers.fully_connected(out, num_outputs=n_output, activation_fn = None)
 
     return out
