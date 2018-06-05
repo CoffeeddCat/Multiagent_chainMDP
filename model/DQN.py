@@ -12,16 +12,16 @@ class DQN:
         n_features,
         n_actions,
         model,
-        learning_rate=1e-3,
+        scope,
+        sess,
+        order,
         hiddens,
+        learning_rate=1e-3,
         decay=0.99,
         memory_size=100000,
         batch_size=2000,
         epsilon_decrement=0.0005,
-        epsilon_lower=0.2,
-        scope,
-        sess,
-        order
+        epsilon_lower=0.2
     ):
         self.sess = sess
         self.scope = scope
