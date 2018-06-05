@@ -1,10 +1,10 @@
 import tensorflow as tf
 import numpy as np
 import random
-import queue
+# import queue
 import copy
 
-from ..utils.utils import Memory
+from utils.utils import Memory
 
 class DQN:
     def __init__(
@@ -28,7 +28,7 @@ class DQN:
         self.n_features = n_features
         self.batch_size = batch_size
         self.decay = decay
-        self.model = mlp
+        self.model = model
         self.memory = Memory(memory_size)
         self.order = order
 

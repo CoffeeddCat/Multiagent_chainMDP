@@ -1,6 +1,7 @@
 from env.Env import Env
 from model.DQN import DQN
 from model.mlp import mlp
+import tensorflow as tf
 import queue
 
 if __name__ == '__main__':
@@ -34,7 +35,7 @@ if __name__ == '__main__':
               right_end_reward = right_end_reward)
 
     #set saver
-    saver = tf.Saver()
+    saver = tf.train.Saver()
 
     #dataQueue = queue.Queue()
     scoreQueue = queue.Queue()
@@ -59,7 +60,6 @@ if __name__ == '__main__':
                 
             state = state_after
             # scoreQueue.put(total_reward)
-
         if episode % 100 == 0: #every 100 epsiodes learn
             for i in range(ai_number):
                 ais[i].learn()
