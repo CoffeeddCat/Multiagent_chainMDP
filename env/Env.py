@@ -51,7 +51,7 @@ class Env:
 
         self.state = copy.deepcopy(state_after)
 
-        return state_after, reward, sum(reward)
+        return state_after, reward, sum(reward),all_right_flag
 
     def reset(self):
         self.state = [0 for i in range(self.agent_number)]

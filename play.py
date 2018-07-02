@@ -6,7 +6,7 @@ import queue
 
 if __name__ == '__main__':
     #settings:
-    ai_number = 4
+    ai_number = 10
     n_features = ai_number
     n_actions = 2
     chain_length = 20
@@ -14,8 +14,8 @@ if __name__ == '__main__':
     sess = tf.Session()
     left_end_reward = 0.1
     right_end_reward = 100
-    limit_steps = 400
-    limit_episode = 10000
+    limit_steps = 40000
+    limit_episode = 100000
 
     #add agents
     ais = []
@@ -43,37 +43,55 @@ if __name__ == '__main__':
 
     #start explore
     episode = 0
+    best_steps = limit_steps
+    best_reward = 0
 
     while episode < limit_episode:
         print('episode', episode, 'start')
         episode += 1
         state = env.reset()
         steps = 0
+        episode_reward = 0
+        need_steps = limit_steps
 
-        while steps < limit_steps:
+        while steps < limit_steps or not episode_end:
 
             steps +=1 
             action = []
             for i in range(ai_number):
                 action.append(ais[i].act(state))
 
-            state_after, reward, total_reward = env.step(action)
+            state_after, reward, total_reward, episode_end = env.step(action)
 
             #for debug
-            print('action:', action, 'state_after:', state_after, 'reward:', reward, 'totol_reward:', total_reward)
+            if steps % 1000 == 0:
+                print('action:', action, 'state_after:', state_after, 'reward:', reward, 'totol_reward:', total_reward)
 
             for i in range(ai_number):
                 ais[i].store(state, action[i], reward[i], state_after)
                 
             state = state_after
 
-            print('step', steps)
+            episode_reward += total_reward
+
+            if episode_end:
+                need_steps = steps
+            #print('step', steps)
             # scoreQueue.put(total_reward)
+
+        if need_steps < best_steps:
+            best_steps = need_steps
+
+        if episode_reward > best_reward:
+            best_reward = episode_reward
+
         if episode % 100 == 0: #every 100 epsiodes learn
             for i in range(ai_number):
                 ais[i].learn()
+            print('best rewards:', best_reward, 'best_steps:', best_steps)
 
         if episode % 1000 ==0: #every 1000 episodes export now
             #haven't done yet.
             continue
 
+    print('exp ended. best reward:', best_reward, 'best_steps:', best_steps)
