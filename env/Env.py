@@ -22,17 +22,18 @@ class Env:
         '''
 
         state_after = copy.deepcopy(self.state)
+
         for i in range(self.agent_number):
             move_range_left = 1
             move_range_right = 1
             if self.state[i] == -1:
                 move_range_left = 0
-            if self.state[i] == self.chain_length-1:
+            if self.state[i] == self.chain_length -1:
                 move_range_right = 0
             if action[i] == 1:
                 state_after[i] += move_range_right
             else:
-                state_after[i] += move_range_left
+                state_after[i] -= move_range_left
          
         reward = [0 for i in range(self.agent_number)]
         all_right_flag = True
@@ -48,9 +49,11 @@ class Env:
             for i in range(self.agent_number):
                 reward[i] += self.right_end_reward
 
+        self.state = copy.deepcopy(state_after)
+
         return state_after, reward, sum(reward)
 
     def reset(self):
         self.state = [0 for i in range(self.agent_number)]
         reward = [0 for i in range(self.agent_number)]
-        return self.state, reward, sum(reward)
+        return self.state

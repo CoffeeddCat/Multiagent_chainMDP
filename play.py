@@ -6,10 +6,10 @@ import queue
 
 if __name__ == '__main__':
     #settings:
-    ais = []
     ai_number = 4
     n_features = ai_number
     n_actions = 2
+    chain_length = 20
     hiddens = [64,128,128,32]
     sess = tf.Session()
     left_end_reward = 0.1
@@ -18,6 +18,7 @@ if __name__ == '__main__':
     limit_episode = 10000
 
     #add agents
+    ais = []
     for i in range(ai_number):
         ais.append(DQN(
             n_features = n_features,
@@ -29,7 +30,7 @@ if __name__ == '__main__':
             order = i
             ))
     #set environment
-    env = Env(chain_length = 20,
+    env = Env(chain_length = chain_length,
               agent_number = ai_number,
               left_end_reward = left_end_reward,
               right_end_reward = right_end_reward)
@@ -38,11 +39,13 @@ if __name__ == '__main__':
     saver = tf.train.Saver()
 
     #dataQueue = queue.Queue()
-    scoreQueue = queue.Queue()
+    scoreQueue = queue.Queue()  #not used.
 
     #start explore
     episode = 0
+
     while episode < limit_episode:
+        print('episode', episode, 'start')
         episode += 1
         state = env.reset()
         steps = 0
@@ -53,12 +56,18 @@ if __name__ == '__main__':
             action = []
             for i in range(ai_number):
                 action.append(ais[i].act(state))
+
             state_after, reward, total_reward = env.step(action)
+
+            #for debug
+            print('action:', action, 'state_after:', state_after, 'reward:', reward, 'totol_reward:', total_reward)
 
             for i in range(ai_number):
                 ais[i].store(state, action[i], reward[i], state_after)
                 
             state = state_after
+
+            print('step', steps)
             # scoreQueue.put(total_reward)
         if episode % 100 == 0: #every 100 epsiodes learn
             for i in range(ai_number):

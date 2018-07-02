@@ -78,7 +78,7 @@ class DQN:
             copy_state[0] = t
 
             action = self.sess.run(self.eval_output, feed_dict={
-                self.eval_input: np.array(copy_state)
+                self.eval_input: np.array([copy_state])
                 })
 
             return np.argmax(action, axis = 1)[0].tolist()
@@ -123,3 +123,7 @@ class DQN:
             done.append(np.array(0))
             decays.append(self.decay)
         return state, action, reward, state_next, done, decays
+
+    @property
+    def epsilon(self):
+        return self.sess.run(self._epsilon)
