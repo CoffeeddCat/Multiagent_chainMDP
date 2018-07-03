@@ -3,19 +3,30 @@ from model.DQN import DQN
 from model.mlp import mlp
 import tensorflow as tf
 import queue
+import matplotlib.pyplot as plt
+from threading import Thread
 
 if __name__ == '__main__':
     #settings:
-    ai_number = 10
+    ai_number = 2
     n_features = ai_number
     n_actions = 2
-    chain_length = 20
+    chain_length = 10
     hiddens = [64,128,128,32]
     sess = tf.Session()
     left_end_reward = 0.1
     right_end_reward = 100
     limit_steps = 40000
     limit_episode = 100000
+
+    #initialize the plot
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.axis("equal")
+    plt.ion()
+    #plt.axis([0,5000,0,500])
+    x= [0]
+    y= [0]
 
     #add agents
     ais = []
@@ -53,8 +64,9 @@ if __name__ == '__main__':
         steps = 0
         episode_reward = 0
         need_steps = limit_steps
+        episode_end = False
 
-        while steps < limit_steps or not episode_end:
+        while steps < limit_steps and not episode_end:
 
             steps +=1 
             action = []
@@ -78,6 +90,13 @@ if __name__ == '__main__':
                 need_steps = steps
             #print('step', steps)
             # scoreQueue.put(total_reward)
+        print('episode', episode, 'ended, used steps:', steps)
+
+        #update the plot
+        x.append(episode)
+        y.append(steps)
+        ax.plot(x, y, marker='.', c='r')
+        plt.pause(0.001)
 
         if need_steps < best_steps:
             best_steps = need_steps
