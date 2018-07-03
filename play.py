@@ -11,11 +11,16 @@ if __name__ == '__main__':
     ai_number = 2
     n_features = ai_number
     n_actions = 2
-    chain_length = 10
+    chain_length = 20
     hiddens = [64,128,128,32]
-    sess = tf.Session()
+    #sess = tf.Session()
+    sess = tf.Session(config=tf.ConfigProto(
+            device_count={"CPU": 4},
+            inter_op_parallelism_threads=1,
+            intra_op_parallelism_threads=1,
+        ))
     left_end_reward = 0.1
-    right_end_reward = 100
+    right_end_reward = 10000
     limit_steps = 40000
     limit_episode = 100000
 
@@ -80,7 +85,7 @@ if __name__ == '__main__':
                 print('action:', action, 'state_after:', state_after, 'reward:', reward, 'totol_reward:', total_reward)
 
             for i in range(ai_number):
-                ais[i].store(state, action[i], reward[i], state_after)
+                ais[i].store(state, action[i], reward[i], state_after, episode_end)
                 
             state = state_after
 
@@ -93,10 +98,10 @@ if __name__ == '__main__':
         print('episode', episode, 'ended, used steps:', steps)
 
         #update the plot
-        x.append(episode)
-        y.append(steps)
-        ax.plot(x, y, marker='.', c='r')
-        plt.pause(0.001)
+        # x.append(episode)
+        # y.append(steps)
+        # ax.plot(x, y, marker='.', c='r')
+        # plt.pause(0.001)
 
         if need_steps < best_steps:
             best_steps = need_steps
@@ -104,10 +109,29 @@ if __name__ == '__main__':
         if episode_reward > best_reward:
             best_reward = episode_reward
 
-        if episode % 100 == 0: #every 100 epsiodes learn
+        if episode % 10 == 0: #every 10 episodes learn
             for i in range(ai_number):
                 ais[i].learn()
             print('best rewards:', best_reward, 'best_steps:', best_steps)
+            print('now epsilon:', ais[0].epsilon)
+
+        if episode % 100 == 0: #every 100 episodes show
+            env.reset()
+            steps = 0
+            episode_end = False
+            while steps < limit_steps and not episode_end:
+                steps+=1
+                action = []
+                for i in range(ai_number):
+                    action.append(ais[i].check(state))
+
+                state_after, reward, total_reward, episode_end = env.step(action)
+                state = state_after
+            x.append(episode)
+            y.append(steps)
+            ax.plot(x, y, marker='.', c='r')
+            plt.pause(0.001)
+            print('this is the check episode: \n needed steps:', steps)
 
         if episode % 1000 ==0: #every 1000 episodes export now
             #haven't done yet.

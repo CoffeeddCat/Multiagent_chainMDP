@@ -18,9 +18,9 @@ class DQN:
         hiddens,
         learning_rate=1e-3,
         decay=0.99,
-        memory_size=100000,
-        batch_size=2000,
-        epsilon_decrement=0.0005,
+        memory_size=20000,
+        batch_size=1000,
+        epsilon_decrement=0.005,
         epsilon_lower=0.2
     ):
         self.sess = sess
@@ -71,7 +71,7 @@ class DQN:
             return random.randint(0,1)
         else:
             copy_state = copy.deepcopy(state)
-
+            #for debug
             #exchange
             t = copy_state[self.order]
             copy_state[self.order] = copy_state[0]
@@ -82,6 +82,20 @@ class DQN:
                 })
 
             return np.argmax(action, axis = 1)[0].tolist()
+
+    def check(self, state):
+        copy_state = copy.deepcopy(state)
+
+        # exchange
+        t = copy_state[self.order]
+        copy_state[self.order] = copy_state[0]
+        copy_state[0] = t
+
+        action = self.sess.run(self.eval_output, feed_dict={
+            self.eval_input: np.array([copy_state])
+        })
+        print(action)
+        return np.argmax(action, axis=1)[0].tolist()
 
     def learn(self):
         state, action, reward, state_next, done, decays = self.process_data()
@@ -97,7 +111,7 @@ class DQN:
 
         if self.epsilon > self.epsilon_lower:
             self.sess.run(self.update_epsilon)
-    def store(self, state, action, reward, state_after):
+    def store(self, state, action, reward, state_after, episode_ended):
 
         state_copy = copy.deepcopy(state)
         state_after_copy = copy.deepcopy(state_after)
@@ -110,7 +124,7 @@ class DQN:
         state_after_copy[self.order] = state_after_copy[0]
         state_after_copy[0] = t
 
-        self.memory.store(np.array([state_copy, action, reward, state_after_copy]))
+        self.memory.store(np.array([state_copy, action, reward, state_after_copy, episode_ended]))
 
     def process_data(self):
         state, action, reward, state_next, done, decays = [], [], [], [], [], []
@@ -120,7 +134,10 @@ class DQN:
             action.append(temp[i][1])
             reward.append(temp[i][2])
             state_next.append(temp[i][3])
-            done.append(np.array(0))
+            if temp[i][4] == False:
+                done.append(np.array(0))
+            else:
+                done.append(np.array(1))
             decays.append(self.decay)
         return state, action, reward, state_next, done, decays
 
