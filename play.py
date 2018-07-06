@@ -4,6 +4,7 @@ from model.mlp import mlp
 import tensorflow as tf
 import queue
 import matplotlib.pyplot as plt
+import numpy as np
 from threading import Thread
 
 if __name__ == '__main__':
@@ -11,17 +12,26 @@ if __name__ == '__main__':
     ai_number = 2
     n_features = ai_number
     n_actions = 2
-    chain_length = 20
-    hiddens = [64,128,128,32]
+    chain_length = 50
+    hiddens = [64*2,128*2,128*2,32]
+    EpochLength = 100
     #sess = tf.Session()
     sess = tf.Session(config=tf.ConfigProto(
             device_count={"CPU": 4},
             inter_op_parallelism_threads=1,
             intra_op_parallelism_threads=1,
         ))
+    C = 0.99
+    beta = 0.5
+    #f = open('/~/result.txt', 'w')
+
+    #config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+    #config.gpu_options.allow_growth = True
+    #sess = tf.Session(config=config)
+
     left_end_reward = 0.1
     right_end_reward = 10000
-    limit_steps = 40000
+    limit_steps = 4000
     limit_episode = 100000
 
     #initialize the plot
@@ -43,7 +53,9 @@ if __name__ == '__main__':
             hiddens = hiddens,
             scope = 'number_' + str(i),
             sess = sess,
-            order = i
+            order = i,
+            beta = beta,
+            C = C
             ))
     #set environment
     env = Env(chain_length = chain_length,
@@ -80,7 +92,14 @@ if __name__ == '__main__':
 
             state_after, reward, total_reward, episode_end = env.step(action)
 
+
+
+            #to gain the new reward
+            for i in range(ai_number):
+                reward[i] = ais[i].return_new_reward(reward = reward[i], state_t=state, state_tpo=state_after, episode=episode, action=action[i])
+
             #for debug
+            total_reward = np.array(reward).sum()
             if steps % 1000 == 0:
                 print('action:', action, 'state_after:', state_after, 'reward:', reward, 'totol_reward:', total_reward)
 
@@ -114,7 +133,9 @@ if __name__ == '__main__':
                 ais[i].learn()
             print('best rewards:', best_reward, 'best_steps:', best_steps)
             print('now epsilon:', ais[0].epsilon)
-
+        if episode % EpochLength ==0:
+            for i in range(ai_number):
+                ais[i].update_M()
         if episode % 100 == 0: #every 100 episodes show
             env.reset()
             steps = 0
@@ -126,15 +147,19 @@ if __name__ == '__main__':
                     action.append(ais[i].check(state))
 
                 state_after, reward, total_reward, episode_end = env.step(action)
+                print('action:', action, 'state_after:', state_after, 'reward:', reward)
                 state = state_after
             x.append(episode)
             y.append(steps)
             ax.plot(x, y, marker='.', c='r')
             plt.pause(0.001)
-            print('this is the check episode: \n needed steps:', steps)
+            result = 'episode: '+ str(episode) + 'needed steps: ' + str(steps) + '\n'
+            f.write(result)
+            print('this is the memory index: ', ais[0].memory.return_index())
 
         if episode % 1000 ==0: #every 1000 episodes export now
             #haven't done yet.
             continue
 
     print('exp ended. best reward:', best_reward, 'best_steps:', best_steps)
+    f.close()

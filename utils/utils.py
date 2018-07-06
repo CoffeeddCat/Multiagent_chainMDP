@@ -7,9 +7,12 @@ class Memory:
         self.index = -1
 
     def store(self, experience):
-        self.index += 1
+        self.index = (self.index + 1) % self.capacity
         self.data[self.index % self.capacity] = experience
 
     def sample(self, batch_size):
         sample_index = np.random.choice(min(self.index, self.capacity), size=batch_size)
         return self.data[sample_index]
+
+    def return_index(self):
+        return self.index

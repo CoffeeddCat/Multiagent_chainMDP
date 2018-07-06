@@ -3,6 +3,7 @@ import numpy as np
 import random
 # import queue
 import copy
+from model.mlp import mlp
 
 from utils.utils import Memory
 
@@ -16,11 +17,13 @@ class DQN:
         sess,
         order,
         hiddens,
+        beta,
+        C,
         learning_rate=1e-3,
         decay=0.99,
-        memory_size=20000,
-        batch_size=1000,
-        epsilon_decrement=0.005,
+        memory_size=2000000,
+        batch_size=10000,
+        epsilon_decrement=0.0005,
         epsilon_lower=0.2
     ):
         self.sess = sess
@@ -31,6 +34,8 @@ class DQN:
         self.model = model
         self.memory = Memory(memory_size)
         self.order = order
+        self.beta = beta
+        self.C = C
 
         self.epsilon_lower = epsilon_lower
         self.epsilon_decrement = epsilon_decrement
@@ -42,6 +47,11 @@ class DQN:
         self.decays = tf.placeholder(tf.float32, shape=[None, ], name='decay')
         self.rewards = tf.placeholder(tf.float32, shape=[None, ], name='rewards')
 
+        #about the encoder
+        self.state_input_t = tf.placeholder(tf.float32,shape=[None, self.n_features], name='state_input_t')
+        self.state_input_tpo = tf.placeholder(tf.float32,shape=[None, self.n_features], name='state_input_tpo')
+        self.action_plus_state_input = tf.placeholder(tf.float32,shape=[None, self.n_features+1], name='action_plus_state_input')
+
         with tf.variable_scope(self.scope):
             self._epsilon = tf.get_variable(name='epsilon', dtype=tf.float32, initializer=1.0)
             self._epsilon_decrement = tf.constant(epsilon_decrement)
@@ -51,6 +61,16 @@ class DQN:
             self.eval_output = model(inputs=self.eval_input, n_output=n_actions, scope='eval_net', hiddens=hiddens)
             self.target_output = tf.stop_gradient(
                 model(inputs=self.target_input, n_output=n_actions, scope='target_net', hiddens=hiddens))
+
+            #about encoder
+            self.encoder_output_t = mlp(inputs=self.state_input_t, n_output=self.n_features, scope='encoder_t', hiddens=[64,128,128,32,32])
+            self.encoder_output_tpo = mlp(inputs=self.state_input_tpo, n_output=self.n_features, scope='encoder_tpo', hiddens=[64,128,128,32,32])
+            self.predict_output = mlp(inputs=self.action_plus_state_input, n_output=self.n_features, scope='predict_output', hiddens=[64,128,128,32,32])
+
+            self.predict_mse = tf.reduce_sum(tf.square(self.encoder_output_tpo - self.predict_output)) * self.n_features
+            self.emax = tf.get_variable(name='emax', dtype=tf.float32, initializer=1.0)
+            self.update_emax = tf.assign(self.emax, tf.maximum(self.emax, self.predict_mse))
+            self.e_normalize = tf.div(self.predict_mse, self.emax)
 
         self.eval_output_selected = tf.reduce_sum(
             self.eval_output * tf.one_hot(self.actions_selected, n_actions), axis=1)
@@ -63,6 +83,7 @@ class DQN:
         self.target_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope + '/target_net')
 
         self.update = [tf.assign(x, y) for x, y in zip(self.target_params, self.eval_params)]
+
 
         self.sess.run(tf.global_variables_initializer())
 
@@ -144,3 +165,18 @@ class DQN:
     @property
     def epsilon(self):
         return self.sess.run(self._epsilon)
+
+    def return_new_reward(self,reward,state_t,state_tpo,episode,action):
+        self.sess.run(self.update_emax, feed_dict = {
+            self.state_input_t: np.array([state_t]),
+            self.state_input_tpo: np.array([state_tpo]),
+            self.action_plus_state_input: np.array([state_t+[action]])
+        })
+        return reward + self.beta / self.C / episode * self.sess.run(self.e_normalize, feed_dict = {
+            self.state_input_t: np.array([state_t]),
+            self.state_input_tpo: np.array([state_tpo]),
+            self.action_plus_state_input: np.array([state_t+[action]]),
+        })
+
+    # def update_M(self):
+
