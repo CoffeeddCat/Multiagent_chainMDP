@@ -18,6 +18,12 @@ if __name__ == '__main__':
                 inter_op_parallelism_threads=1,
                 intra_op_parallelism_threads=1,
             ))
+    # set saver
+    if SAVE:
+        saver = tf.train.Saver()
+    if LOAD:
+        model_file = tf.train.latest_checkpoint(LOAD_FILE_PATH)
+        saver.restore(sess, model_file)
 
     if RESULT_EXPORT:
         f = open('/~/result.txt', 'w')
@@ -63,9 +69,6 @@ if __name__ == '__main__':
               agent_number = ai_number,
               left_end_reward = left_end_reward,
               right_end_reward = right_end_reward)
-
-    #set saver
-    saver = tf.train.Saver()
 
     #start explore
     episode = 0
@@ -161,7 +164,8 @@ if __name__ == '__main__':
             print('this is the memory index: ', ais[0].memory.return_index())
 
         if episode % 1000 ==0: #every 1000 episodes export now
-            #haven't done yet.
+            if SAVE:
+                saver.save(sess, 'multi-agent chainMDP' ,global_step=episode)
             continue
 
     print('exp ended. best reward:', best_reward, 'best_steps:', best_steps)

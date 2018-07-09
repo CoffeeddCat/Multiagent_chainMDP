@@ -25,7 +25,7 @@ class DQN:
         common_target_output,
         learning_rate=1e-5,
         decay=0.99,
-        memory_size=200000000,
+        memory_size=20000000,
         batch_size=100000,
         epsilon_decrement=0.0005,
         epsilon_lower=0.2
