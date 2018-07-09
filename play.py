@@ -16,18 +16,18 @@ if __name__ == '__main__':
     hiddens = [64*2,128*2,128*2,32]
     EpochLength = 100
     #sess = tf.Session()
-    sess = tf.Session(config=tf.ConfigProto(
-            device_count={"CPU": 4},
-            inter_op_parallelism_threads=1,
-            intra_op_parallelism_threads=1,
-        ))
+    # sess = tf.Session(config=tf.ConfigProto(
+    #         device_count={"CPU": 4},
+    #         inter_op_parallelism_threads=1,
+    #         intra_op_parallelism_threads=1,
+    #     ))
     C = 0.99
     beta = 0.5
-    #f = open('/~/result.txt', 'w')
+    f = open('/~/result.txt', 'w')
 
-    #config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-    #config.gpu_options.allow_growth = True
-    #sess = tf.Session(config=config)
+    config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+    config.gpu_options.allow_growth = True
+    sess = tf.Session(config=config)
 
     left_end_reward = 0.1
     right_end_reward = 10000
@@ -153,7 +153,7 @@ if __name__ == '__main__':
             y.append(steps)
             ax.plot(x, y, marker='.', c='r')
             plt.pause(0.001)
-            result = 'episode: '+ str(episode) + 'needed steps: ' + str(steps) + '\n'
+            result = 'episode: '+ str(episode) + ' needed steps: ' + str(steps) + '\n'
             f.write(result)
             print('this is the memory index: ', ais[0].memory.return_index())
 
