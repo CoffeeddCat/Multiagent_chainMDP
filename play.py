@@ -2,38 +2,25 @@ from env.Env import Env
 from model.DQN import DQN
 from model.mlp import mlp
 import tensorflow as tf
-import queue
 import matplotlib.pyplot as plt
 import numpy as np
-from threading import Thread
+from config import *
 
 if __name__ == '__main__':
-    #settings:
-    ai_number = 1
-    n_features = ai_number
-    n_actions = 2
-    chain_length = 10
-    hiddens = [64,64,32]
-    EpochLength = 100
-    #sess = tf.Session()
-    sess = tf.Session(config=tf.ConfigProto(
-            device_count={"CPU": 4},
-            inter_op_parallelism_threads=1,
-            intra_op_parallelism_threads=1,
-        ))
 
-    C = 0.99
-    beta = 0.5
-    #f = open('/~/result.txt', 'w')
+    if GPU_USED:
+        config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+        config.gpu_options.allow_growth = True
+        sess = tf.Session(config=config)
+    else:
+        sess = tf.Session(config=tf.ConfigProto(
+                device_count={"CPU": 4},
+                inter_op_parallelism_threads=1,
+                intra_op_parallelism_threads=1,
+            ))
 
-    # config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-    # config.gpu_options.allow_growth = True
-    # sess = tf.Session(config=config)
-
-    left_end_reward = 0
-    right_end_reward = 100
-    limit_steps = 4000
-    limit_episode = 1000
+    if RESULT_EXPORT:
+        f = open('/~/result.txt', 'w')
 
     #try to share some common layers
     common_eval_input = tf.placeholder(tf.float32, shape=[None, n_features], name='common_eval_input')
@@ -47,7 +34,6 @@ if __name__ == '__main__':
     ax.axis("equal")
     plt.ion()
     plt.ylim((0,10))
-    #plt.axis([0,5000,0,500])
     x= [0]
     y= [0]
 
@@ -81,9 +67,6 @@ if __name__ == '__main__':
     #set saver
     saver = tf.train.Saver()
 
-    #dataQueue = queue.Queue()
-    scoreQueue = queue.Queue()  #not used.
-
     #start explore
     episode = 0
     best_steps = limit_steps
@@ -108,8 +91,9 @@ if __name__ == '__main__':
             state_after, reward, total_reward, episode_end = env.step(action)
 
             #to gain the new reward
-            #for i in range(ai_number):
-               #reward[i] = ais[i].return_new_reward(reward = reward[i], state_t=state, state_tpo=state_after, episode=episode, action=action[i])
+            if INCENTIVE_USED:
+                for i in range(ai_number):
+                    reward[i] = ais[i].return_new_reward(reward = reward[i], state_t=state, state_tpo=state_after, episode=episode, action=action[i])
 
             #for debug
             total_reward = np.array(reward).sum()
@@ -128,15 +112,8 @@ if __name__ == '__main__':
 
             if episode_end:
                 need_steps = steps
-            #print('step', steps)
-            # scoreQueue.put(total_reward)
-        print('episode', episode, 'ended, used steps:', steps)
 
-        #update the plot
-        # x.append(episode)
-        # y.append(steps)
-        # ax.plot(x, y, marker='.', c='r')
-        # plt.pause(0.001)
+        print('episode', episode, 'ended, used steps:', steps)
 
         if need_steps < best_steps:
             best_steps = need_steps
@@ -149,10 +126,12 @@ if __name__ == '__main__':
                 ais[i].learn()
             print('best rewards:', best_reward, 'best_steps:', best_steps)
             print('now epsilon:', ais[0].epsilon)
+
         if episode % 10==0:
             for i in range(ai_number):
                 ais[i].update_M()
                 ais[i].update_encoder()
+
         if episode % 10 == 0: #every 100 episodes show
             env.reset()
             steps = 0
@@ -168,12 +147,17 @@ if __name__ == '__main__':
                 r = r + reward[0]
                 print('action:', action, 'state_after:', state_after, 'reward:', reward)
                 state = state_after
+
+            #for the plot
             x.append(episode)
             y.append(r)
             ax.plot(x, y, marker='.', c='r')
             plt.pause(0.001)
-            result = 'episode: '+ str(episode) + ' needed steps: ' + str(steps) + '\n'
-            #f.write(result)
+
+            if RESULT_EXPORT:
+                result = 'episode: '+ str(episode) + ' needed steps: ' + str(steps) + '\n'
+                f.write(result)
+
             print('this is the memory index: ', ais[0].memory.return_index())
 
         if episode % 1000 ==0: #every 1000 episodes export now
@@ -181,4 +165,5 @@ if __name__ == '__main__':
             continue
 
     print('exp ended. best reward:', best_reward, 'best_steps:', best_steps)
-    #f.close()
+    if RESULT_EXPORT:
+        f.close()
