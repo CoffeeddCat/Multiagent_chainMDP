@@ -9,30 +9,36 @@ from threading import Thread
 
 if __name__ == '__main__':
     #settings:
-    ai_number = 2
+    ai_number = 4
     n_features = ai_number
     n_actions = 2
-    chain_length = 50
-    hiddens = [64*2,128*2,128*2,32]
+    chain_length = 100
+    hiddens = [64,128,32]
     EpochLength = 100
     #sess = tf.Session()
-    # sess = tf.Session(config=tf.ConfigProto(
-    #         device_count={"CPU": 4},
-    #         inter_op_parallelism_threads=1,
-    #         intra_op_parallelism_threads=1,
-    #     ))
+    sess = tf.Session(config=tf.ConfigProto(
+            device_count={"CPU": 4},
+            inter_op_parallelism_threads=1,
+            intra_op_parallelism_threads=1,
+        ))
     C = 0.99
     beta = 0.5
-    f = open('/~/result.txt', 'w')
+    #f = open('/~/result.txt', 'w')
 
-    config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-    config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
+    # config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+    # config.gpu_options.allow_growth = True
+    # sess = tf.Session(config=config)
 
     left_end_reward = 0.1
     right_end_reward = 10000
     limit_steps = 4000
     limit_episode = 100000
+
+    #try to share some common layers
+    common_eval_input = tf.placeholder(tf.float32, shape=[None, n_features], name='common_eval_input')
+    common_target_input = tf.placeholder(tf.float32, shape=[None, n_features], name='common_target_input')
+    common_eval_output = mlp(inputs=common_eval_input, n_output=64, scope='common_eval_layer', hiddens=hiddens)
+    common_target_output = tf.stop_gradient(mlp(inputs=common_eval_input, n_output=64, scope='common_target_layer', hiddens=hiddens))
 
     #initialize the plot
     fig = plt.figure()
@@ -55,7 +61,11 @@ if __name__ == '__main__':
             sess = sess,
             order = i,
             beta = beta,
-            C = C
+            C = C,
+            common_eval_input = common_eval_input,
+            common_target_input = common_target_input,
+            common_eval_output = common_eval_output,
+            common_target_output = common_target_output
             ))
     #set environment
     env = Env(chain_length = chain_length,
@@ -154,7 +164,7 @@ if __name__ == '__main__':
             ax.plot(x, y, marker='.', c='r')
             plt.pause(0.001)
             result = 'episode: '+ str(episode) + ' needed steps: ' + str(steps) + '\n'
-            f.write(result)
+            #f.write(result)
             print('this is the memory index: ', ais[0].memory.return_index())
 
         if episode % 1000 ==0: #every 1000 episodes export now

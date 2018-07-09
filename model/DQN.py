@@ -19,6 +19,10 @@ class DQN:
         hiddens,
         beta,
         C,
+        common_eval_input,
+        common_target_input,
+        common_eval_output,
+        common_target_output,
         learning_rate=1e-3,
         decay=0.99,
         memory_size=2000000,
@@ -52,15 +56,25 @@ class DQN:
         self.state_input_tpo = tf.placeholder(tf.float32,shape=[None, self.n_features], name='state_input_tpo')
         self.action_plus_state_input = tf.placeholder(tf.float32,shape=[None, self.n_features+1], name='action_plus_state_input')
 
+        #share the first layers
+        self.common_eval_input = common_eval_input
+        self.common_target_input = common_target_input
+        self.common_eval_output = common_eval_output
+        self.common_target_output = common_target_output
+
         with tf.variable_scope(self.scope):
             self._epsilon = tf.get_variable(name='epsilon', dtype=tf.float32, initializer=1.0)
             self._epsilon_decrement = tf.constant(epsilon_decrement)
             self.update_epsilon = tf.assign(self._epsilon, self._epsilon - self._epsilon_decrement)
             self.reset_epsilon = tf.assign(self._epsilon, 1)
             
-            self.eval_output = model(inputs=self.eval_input, n_output=n_actions, scope='eval_net', hiddens=hiddens)
+            # self.eval_output = model(inputs=self.eval_input, n_output=n_actions, scope='eval_net', hiddens=hiddens)
+            # self.target_output = tf.stop_gradient(
+            #     model(inputs=self.target_input, n_output=n_actions, scope='target_net', hiddens=hiddens))
+
+            self.eval_output = model(inputs=self.common_eval_output, n_output=n_actions, scope='eval_net', hiddens=hiddens)
             self.target_output = tf.stop_gradient(
-                model(inputs=self.target_input, n_output=n_actions, scope='target_net', hiddens=hiddens))
+                model(inputs=self.common_target_output, n_output=n_actions, scope='target_net', hiddens=hiddens))
 
             #about encoder
             self.encoder_output_t = mlp(inputs=self.state_input_t, n_output=self.n_features, scope='encoder_t', hiddens=[64,128,128,32,32])
@@ -99,7 +113,7 @@ class DQN:
             copy_state[0] = t
 
             action = self.sess.run(self.eval_output, feed_dict={
-                self.eval_input: np.array([copy_state])
+                self.common_eval_input: np.array([copy_state])
                 })
 
             return np.argmax(action, axis = 1)[0].tolist()
@@ -113,7 +127,7 @@ class DQN:
         copy_state[0] = t
 
         action = self.sess.run(self.eval_output, feed_dict={
-            self.eval_input: np.array([copy_state])
+            self.common_eval_input: np.array([copy_state])
         })
         print(action)
         return np.argmax(action, axis=1)[0].tolist()
@@ -122,10 +136,10 @@ class DQN:
         state, action, reward, state_next, done, decays = self.process_data()
 
         self.sess.run(self.train, feed_dict={
-                self.eval_input: state,
+                self.common_eval_input: state,
                 self.actions_selected: action,
                 self.rewards: reward,
-                self.target_input: state_next,
+                self.common_target_input: state_next,
                 self.done: done,
                 self.decays: decays
             })
