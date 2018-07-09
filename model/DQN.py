@@ -23,10 +23,10 @@ class DQN:
         common_target_input,
         common_eval_output,
         common_target_output,
-        learning_rate=1e-3,
+        learning_rate=1e-5,
         decay=0.99,
-        memory_size=2000000,
-        batch_size=10000,
+        memory_size=200000000,
+        batch_size=100000,
         epsilon_decrement=0.0005,
         epsilon_lower=0.2
     ):
@@ -40,6 +40,8 @@ class DQN:
         self.order = order
         self.beta = beta
         self.C = C
+
+        self.learn_times = 0
 
         self.epsilon_lower = epsilon_lower
         self.epsilon_decrement = epsilon_decrement
@@ -77,14 +79,22 @@ class DQN:
                 model(inputs=self.common_target_output, n_output=n_actions, scope='target_net', hiddens=hiddens))
 
             #about encoder
-            self.encoder_output_t = mlp(inputs=self.state_input_t, n_output=self.n_features, scope='encoder_t', hiddens=[64,128,128,32,32])
-            self.encoder_output_tpo = mlp(inputs=self.state_input_tpo, n_output=self.n_features, scope='encoder_tpo', hiddens=[64,128,128,32,32])
-            self.predict_output = mlp(inputs=self.action_plus_state_input, n_output=self.n_features, scope='predict_output', hiddens=[64,128,128,32,32])
+            self.encoder_temp_t = mlp(inputs=self.state_input_t, n_output= 64, scope='encoder_temp_t', hiddens=[32,128,128,64])
+            self.encoder_temp_tpo = tf.stop_gradient(mlp(inputs=self.state_input_tpo, n_output=64, scope='encoder_temp_tpo', hiddens=[32,128,128,64]))
 
-            self.predict_mse = tf.reduce_sum(tf.square(self.encoder_output_tpo - self.predict_output)) * self.n_features
+            self.encoder_output_t = mlp(inputs=self.encoder_temp_t, n_output=self.n_features, scope='encoder_t', hiddens=[64,128,128,32])
+            self.encoder_output_tpo = mlp(inputs=self.encoder_temp_tpo, n_output=self.n_features, scope='encoder_tpo', hiddens=[64,128,128,32])
+            self.predict_output = mlp(inputs=self.action_plus_state_input, n_output=64, scope='predict_output', hiddens=[64,128,128,32])
+
+            self.predict_mse = tf.reduce_sum(tf.square(self.encoder_temp_tpo - self.predict_output)) * self.n_features
             self.emax = tf.get_variable(name='emax', dtype=tf.float32, initializer=1.0)
             self.update_emax = tf.assign(self.emax, tf.maximum(self.emax, self.predict_mse))
             self.e_normalize = tf.div(self.predict_mse, self.emax)
+
+            self.encoder_loss = tf.reduce_sum(tf.square(self.state_input_t-self.encoder_output_t))
+            self.train_encoder = tf.train.AdamOptimizer(learning_rate).minimize(self.encoder_loss)
+            self.M_loss = self.predict_mse
+            self.train_M = tf.train.AdamOptimizer(learning_rate).minimize(self.M_loss)
 
         self.eval_output_selected = tf.reduce_sum(
             self.eval_output * tf.one_hot(self.actions_selected, n_actions), axis=1)
@@ -129,12 +139,11 @@ class DQN:
         action = self.sess.run(self.eval_output, feed_dict={
             self.common_eval_input: np.array([copy_state])
         })
-        print(action)
         return np.argmax(action, axis=1)[0].tolist()
 
     def learn(self):
+        self.learn_times += 1
         state, action, reward, state_next, done, decays = self.process_data()
-
         self.sess.run(self.train, feed_dict={
                 self.common_eval_input: state,
                 self.actions_selected: action,
@@ -146,6 +155,10 @@ class DQN:
 
         if self.epsilon > self.epsilon_lower:
             self.sess.run(self.update_epsilon)
+
+        if self.learn_times % 10 == 0:
+            print('start update target network')
+            self.sess.run(self.update)
     def store(self, state, action, reward, state_after, episode_ended):
 
         state_copy = copy.deepcopy(state)
@@ -192,5 +205,15 @@ class DQN:
             self.action_plus_state_input: np.array([state_t+[action]]),
         })
 
-    # def update_M(self):
+    def update_M(self):
+        state, action, reward, state_next, done, decays = self.process_data()
+        self.sess.run(self.train_M, feed_dict = {
+            self.state_input_tpo: state_next,
+            self.action_plus_state_input: np.hstack((state,np.array([action]).T))
+        })
 
+    def update_encoder(self):
+        state, action, reward, state_next, done, decays = self.process_data()
+        self.sess.run(self.train_encoder, feed_dict = {
+            self.state_input_t: state
+        })

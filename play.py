@@ -9,11 +9,11 @@ from threading import Thread
 
 if __name__ == '__main__':
     #settings:
-    ai_number = 4
+    ai_number = 1
     n_features = ai_number
     n_actions = 2
-    chain_length = 100
-    hiddens = [64,128,32]
+    chain_length = 10
+    hiddens = [64,64,32]
     EpochLength = 100
     #sess = tf.Session()
     sess = tf.Session(config=tf.ConfigProto(
@@ -21,6 +21,7 @@ if __name__ == '__main__':
             inter_op_parallelism_threads=1,
             intra_op_parallelism_threads=1,
         ))
+
     C = 0.99
     beta = 0.5
     #f = open('/~/result.txt', 'w')
@@ -29,10 +30,10 @@ if __name__ == '__main__':
     # config.gpu_options.allow_growth = True
     # sess = tf.Session(config=config)
 
-    left_end_reward = 0.1
-    right_end_reward = 10000
+    left_end_reward = 0
+    right_end_reward = 100
     limit_steps = 4000
-    limit_episode = 100000
+    limit_episode = 1000
 
     #try to share some common layers
     common_eval_input = tf.placeholder(tf.float32, shape=[None, n_features], name='common_eval_input')
@@ -45,6 +46,7 @@ if __name__ == '__main__':
     ax = fig.add_subplot(1,1,1)
     ax.axis("equal")
     plt.ion()
+    plt.ylim((0,10))
     #plt.axis([0,5000,0,500])
     x= [0]
     y= [0]
@@ -67,6 +69,9 @@ if __name__ == '__main__':
             common_eval_output = common_eval_output,
             common_target_output = common_target_output
             ))
+
+    writer = tf.summary.FileWriter("logs/", sess.graph)
+
     #set environment
     env = Env(chain_length = chain_length,
               agent_number = ai_number,
@@ -102,16 +107,17 @@ if __name__ == '__main__':
 
             state_after, reward, total_reward, episode_end = env.step(action)
 
-
-
             #to gain the new reward
-            for i in range(ai_number):
-                reward[i] = ais[i].return_new_reward(reward = reward[i], state_t=state, state_tpo=state_after, episode=episode, action=action[i])
+            #for i in range(ai_number):
+               #reward[i] = ais[i].return_new_reward(reward = reward[i], state_t=state, state_tpo=state_after, episode=episode, action=action[i])
 
             #for debug
             total_reward = np.array(reward).sum()
             if steps % 1000 == 0:
                 print('action:', action, 'state_after:', state_after, 'reward:', reward, 'totol_reward:', total_reward)
+
+            if steps == limit_steps-1:
+                episode_end = True
 
             for i in range(ai_number):
                 ais[i].store(state, action[i], reward[i], state_after, episode_end)
@@ -143,13 +149,15 @@ if __name__ == '__main__':
                 ais[i].learn()
             print('best rewards:', best_reward, 'best_steps:', best_steps)
             print('now epsilon:', ais[0].epsilon)
-        if episode % EpochLength ==0:
+        if episode % 10==0:
             for i in range(ai_number):
                 ais[i].update_M()
-        if episode % 100 == 0: #every 100 episodes show
+                ais[i].update_encoder()
+        if episode % 10 == 0: #every 100 episodes show
             env.reset()
             steps = 0
             episode_end = False
+            r = 0
             while steps < limit_steps and not episode_end:
                 steps+=1
                 action = []
@@ -157,10 +165,11 @@ if __name__ == '__main__':
                     action.append(ais[i].check(state))
 
                 state_after, reward, total_reward, episode_end = env.step(action)
+                r = r + reward[0]
                 print('action:', action, 'state_after:', state_after, 'reward:', reward)
                 state = state_after
             x.append(episode)
-            y.append(steps)
+            y.append(r)
             ax.plot(x, y, marker='.', c='r')
             plt.pause(0.001)
             result = 'episode: '+ str(episode) + ' needed steps: ' + str(steps) + '\n'
@@ -172,4 +181,4 @@ if __name__ == '__main__':
             continue
 
     print('exp ended. best reward:', best_reward, 'best_steps:', best_steps)
-    f.close()
+    #f.close()
