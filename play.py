@@ -5,6 +5,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 from config import *
+import random
 
 if __name__ == '__main__':
 
@@ -124,14 +125,20 @@ if __name__ == '__main__':
         if episode_reward > best_reward:
             best_reward = episode_reward
 
+        order = [i for i in range(ai_number)]
+
         if episode % 10 == 0: #every 10 episodes learn
-            for i in range(ai_number):
+            if RANDOM:
+                random.shuffle(order)
+            for i in order:
                 ais[i].learn()
             print('best rewards:', best_reward, 'best_steps:', best_steps)
             print('now epsilon:', ais[0].epsilon)
 
         if episode % 10==0:
-            for i in range(ai_number):
+            if RANDOM:
+                random.shuffle(order)
+            for i in order:
                 ais[i].update_M()
                 ais[i].update_encoder()
 
