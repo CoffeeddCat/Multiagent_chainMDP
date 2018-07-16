@@ -4,6 +4,7 @@ import random
 # import queue
 import copy
 from model.mlp import mlp
+from config import *
 
 from utils.utils import Memory
 
@@ -199,11 +200,19 @@ class DQN:
             self.state_input_tpo: np.array([state_tpo]),
             self.action_plus_state_input: np.array([state_t+[action]])
         })
-        return reward + self.beta / self.C / episode * self.sess.run(self.e_normalize, feed_dict = {
+
+        temp = self.sess.run(self.e_normalize, feed_dict = {
             self.state_input_t: np.array([state_t]),
             self.state_input_tpo: np.array([state_tpo]),
             self.action_plus_state_input: np.array([state_t+[action]]),
         })
+
+        # if epsilon_revised:
+        #     self.sess.run(tf.assign(self._epsilon, temp))
+
+        # print('now epsilon:', self.sess.run(self._epsilon))
+
+        return reward + self.beta / self.C / episode * temp
 
     def update_M(self):
         state, action, reward, state_next, done, decays = self.process_data()

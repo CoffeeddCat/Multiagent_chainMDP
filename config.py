@@ -15,10 +15,12 @@ limit_steps = 4000
 limit_episode = 1000
 
 GPU_USED = False
-INCENTIVE_USED = False
+INCENTIVE_USED = True
 RESULT_EXPORT = False
 
 SAVE = False
 LOAD = False
 LOAD_FILE_PATH = ''
 RANDOM = False
+
+epsilon_revised = True
