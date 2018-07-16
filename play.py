@@ -2,7 +2,7 @@ from env.Env import Env
 from model.DQN import DQN
 from model.mlp import mlp
 import tensorflow as tf
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 from config import *
 import random
@@ -36,13 +36,13 @@ if __name__ == '__main__':
     common_target_output = tf.stop_gradient(mlp(inputs=common_eval_input, n_output=64, scope='common_target_layer', hiddens=hiddens))
 
     #initialize the plot
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.axis("equal")
-    plt.ion()
-    plt.ylim((0,10))
-    x= [0]
-    y= [0]
+    # fig = plt.figure()
+    # ax = fig.add_subplot(1,1,1)
+    # ax.axis("equal")
+    # plt.ion()
+    # plt.ylim((0,10))
+    # x= [0]
+    # y= [0]
 
     #add agents
     ais = []
@@ -159,10 +159,10 @@ if __name__ == '__main__':
                 state = state_after
 
             #for the plot
-            x.append(episode)
-            y.append(r)
-            ax.plot(x, y, marker='.', c='r')
-            plt.pause(0.001)
+            # x.append(episode)
+            # y.append(r)
+            # ax.plot(x, y, marker='.', c='r')
+            # plt.pause(0.001)
 
             if RESULT_EXPORT:
                 result = 'episode: '+ str(episode) + ' needed steps: ' + str(steps) + '\n'
