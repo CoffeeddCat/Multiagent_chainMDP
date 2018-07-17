@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import random
-# import queue
 import copy
 from model.mlp import mlp
 from config import *
@@ -80,12 +79,12 @@ class DQN:
                 model(inputs=self.common_target_output, n_output=n_actions, scope='target_net', hiddens=hiddens))
 
             #about encoder
-            self.encoder_temp_t = mlp(inputs=self.state_input_t, n_output= 64, scope='encoder_temp_t', hiddens=[32,128,128,64])
-            self.encoder_temp_tpo = tf.stop_gradient(mlp(inputs=self.state_input_tpo, n_output=64, scope='encoder_temp_tpo', hiddens=[32,128,128,64]))
+            self.encoder_temp_t = mlp(inputs=self.state_input_t, n_output= 64, scope='encoder_temp_t', hiddens=[32,64])
+            self.encoder_temp_tpo = tf.stop_gradient(mlp(inputs=self.state_input_tpo, n_output=64, scope='encoder_temp_tpo', hiddens=[32,64]))
 
-            self.encoder_output_t = mlp(inputs=self.encoder_temp_t, n_output=self.n_features, scope='encoder_t', hiddens=[64,128,128,32])
-            self.encoder_output_tpo = mlp(inputs=self.encoder_temp_tpo, n_output=self.n_features, scope='encoder_tpo', hiddens=[64,128,128,32])
-            self.predict_output = mlp(inputs=self.action_plus_state_input, n_output=64, scope='predict_output', hiddens=[64,128,128,32])
+            self.encoder_output_t = mlp(inputs=self.encoder_temp_t, n_output=self.n_features, scope='encoder_t', hiddens=[64,32])
+            self.encoder_output_tpo = mlp(inputs=self.encoder_temp_tpo, n_output=self.n_features, scope='encoder_tpo', hiddens=[64,32])
+            self.predict_output = mlp(inputs=self.action_plus_state_input, n_output=64, scope='predict_output', hiddens=[64,32])
 
             self.predict_mse = tf.reduce_sum(tf.square(self.encoder_temp_tpo - self.predict_output)) * self.n_features
             self.emax = tf.get_variable(name='emax', dtype=tf.float32, initializer=1.0)
@@ -207,12 +206,7 @@ class DQN:
             self.action_plus_state_input: np.array([state_t+[action]]),
         })
 
-        # if epsilon_revised:
-        #     self.sess.run(tf.assign(self._epsilon, temp))
-
-        # print('now epsilon:', self.sess.run(self._epsilon))
-
-        return reward + self.beta / self.C / episode * temp
+        return reward + (self.beta / self.C )* temp
 
     def update_M(self):
         state, action, reward, state_next, done, decays = self.process_data()

@@ -2,7 +2,6 @@ from env.Env import Env
 from model.DQN import DQN
 from model.mlp import mlp
 import tensorflow as tf
-# import matplotlib.pyplot as plt
 import numpy as np
 from config import *
 import random
@@ -155,7 +154,7 @@ if __name__ == '__main__':
 
                 state_after, reward, total_reward, episode_end = env.step(action)
                 r = r + reward[0]
-                #print('action:', action, 'state_after:', state_after, 'reward:', reward)
+                print('action:', action, 'state_after:', state_after, 'reward:', reward)
                 state = state_after
 
             #for the plot
