@@ -20,10 +20,8 @@ class DQN:
             hiddens,
             beta,
             C,
-            common_eval_input,
-            common_target_input,
-            common_eval_output,
-            common_target_output,
+            state_input,
+            encoder_output,
             learning_rate=1e-5,
             decay=0.99,
             memory_size=20000000,
@@ -47,6 +45,11 @@ class DQN:
         self.epsilon_lower = epsilon_lower
         self.epsilon_decrement = epsilon_decrement
 
+        # share the encoder
+        self.state_input = state_input
+        self.encoder_output = tf.stop_gradient(encoder_output)
+
+        #some placeholder for inputs
         self.eval_input = tf.placeholder(tf.float32, shape=[None, self.n_features], name='eval_input')
         self.target_input = tf.placeholder(tf.float32, shape=[None, self.n_features], name='target_input')
         self.actions_selected = tf.placeholder(tf.int32, shape=[None, ], name='actions_selected')
@@ -54,32 +57,16 @@ class DQN:
         self.decays = tf.placeholder(tf.float32, shape=[None, ], name='decay')
         self.rewards = tf.placeholder(tf.float32, shape=[None, ], name='rewards')
 
-        # about the encoder
-        self.state_input_t = tf.placeholder(tf.float32, shape=[None, self.n_features], name='state_input_t')
-        self.state_input_tpo = tf.placeholder(tf.float32, shape=[None, self.n_features], name='state_input_tpo')
-        self.action_plus_state_input = tf.placeholder(tf.float32, shape=[None, self.n_features + 1],
-                                                      name='action_plus_state_input')
-
-        # share the first layers
-        self.common_eval_input = common_eval_input
-        self.common_target_input = common_target_input
-        self.common_eval_output = common_eval_output
-        self.common_target_output = common_target_output
-
         with tf.variable_scope(self.scope):
             self._epsilon = tf.get_variable(name='epsilon', dtype=tf.float32, initializer=1.0)
             self._epsilon_decrement = tf.constant(epsilon_decrement)
             self.update_epsilon = tf.assign(self._epsilon, self._epsilon - self._epsilon_decrement)
             self.reset_epsilon = tf.assign(self._epsilon, 1)
 
-            # self.eval_output = model(inputs=self.eval_input, n_output=n_actions, scope='eval_net', hiddens=hiddens)
-            # self.target_output = tf.stop_gradient(
-            #     model(inputs=self.target_input, n_output=n_actions, scope='target_net', hiddens=hiddens))
-
-            self.eval_output = model(inputs=self.common_eval_output, n_output=n_actions, scope='eval_net',
+            self.eval_output = model(inputs=self.encoder_output, n_output=n_actions, scope='eval_net',
                                      hiddens=hiddens)
             self.target_output = tf.stop_gradient(
-                model(inputs=self.common_target_output, n_output=n_actions, scope='target_net', hiddens=hiddens))
+                model(inputs=self.encoder_output, n_output=n_actions, scope='target_net', hiddens=hiddens))
 
             # about encoder
             self.encoder_temp_t = mlp(inputs=self.state_input_t, n_output=64, scope='encoder_temp_t', hiddens=[32, 64])
@@ -106,7 +93,7 @@ class DQN:
         self.eval_output_selected = tf.reduce_sum(
             self.eval_output * tf.one_hot(self.actions_selected, n_actions), axis=1)
         self.eval_output_target = self.rewards + self.decays * tf.reduce_max(self.target_output, axis=1) * (
-        1. - self.done)
+            1. - self.done)
 
         self.loss = tf.reduce_mean(tf.squared_difference(self.eval_output_selected, self.eval_output_target))
         self.train = tf.train.AdamOptimizer(learning_rate).minimize(self.loss)
@@ -221,10 +208,4 @@ class DQN:
         self.sess.run(self.train_M, feed_dict={
             self.state_input_tpo: state_next,
             self.action_plus_state_input: np.hstack((state, np.array([action]).T))
-        })
-
-    def update_encoder(self):
-        state, action, reward, state_next, done, decays = self.process_data()
-        self.sess.run(self.train_encoder, feed_dict={
-            self.state_input_t: state
         })

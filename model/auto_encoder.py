@@ -10,11 +10,12 @@ class auto_encoder:
             learning_rate,
             memory_size,
             batch_size,
-            sess
+            sess,
+            output_size
     ):
         self.sess = sess
         self.common_encoder_input = tf.placeholder(tf.float32, shape=[None, n_features], name='common_encoder_input')
-        self.common_encoder_output = mlp(inputs=self.common_encoder_input, n_output=n_features, scope='common_encoder_output',
+        self.common_encoder_output = mlp(inputs=self.common_encoder_input, n_output=output_size, scope='common_encoder_output',
                                     hiddens=[16, 8])
         self.common_decoder_output = mlp(inputs=self.common_encoder_output, n_output=n_features, scope='common_decoder_output')
 
@@ -30,6 +31,7 @@ class auto_encoder:
     def update(self):
         data = self.memory.sample(self.batch_size)
 
+        #not sure if the data is legal
 
         self.sess.run(self.train, feed_dict = {
             self.common_encoder_input: data

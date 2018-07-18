@@ -139,6 +139,7 @@ class DQN:
         action = self.sess.run(self.eval_output, feed_dict={
             self.common_eval_input: np.array([copy_state])
         })
+
         return np.argmax(action, axis=1)[0].tolist()
 
     def learn(self):

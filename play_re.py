@@ -35,7 +35,8 @@ if __name__ == '__main__':
         learning_rate=1e-5,
         memory_size=2000000,
         batch_size=2000,
-        sess=sess
+        sess=sess,
+        output_size = encoder_output_size
     )
 
     # add agents
@@ -56,3 +57,5 @@ if __name__ == '__main__':
     # set environment
     env = Env(chain_length=chain_length, agent_number=ai_number, left_end_reward=left_end_reward,
               right_end_reward=right_end_reward)
+
+

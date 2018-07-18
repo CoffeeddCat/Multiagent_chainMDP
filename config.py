@@ -23,4 +23,4 @@ LOAD = False
 LOAD_FILE_PATH = ''
 RANDOM = False
 
-epsilon_revised = True
+encoder_output_size = ai_number / 2
