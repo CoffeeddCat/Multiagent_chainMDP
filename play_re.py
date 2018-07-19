@@ -58,4 +58,127 @@ if __name__ == '__main__':
     env = Env(chain_length=chain_length, agent_number=ai_number, left_end_reward=left_end_reward,
               right_end_reward=right_end_reward)
 
+    episode = 0
+
+    #pretrain for the encoder
+    while episode < pretrain_episode:
+        episode += 1
+        if episode % 1000 == 0:
+            print('pretrain episode %d start.' % episode)
+        #init for the episode
+        state = env.reset()
+        steps = 0
+        episode_end = False
+
+        #episode start
+        while steps < limit_steps and not episode_end:
+            steps +=1 
+            action = []
+            for i in range(ai_number):
+                action.append(ais[i].act(state))
+
+            state_after, reward, total_reward, episode_end = env.step(action)
+
+            if steps == limit_steps-1:
+                episode_end = True
+
+            encoder.store(state)
+
+            state = state_after
+
+        if episode % pretrain_update_episode == 0:
+            encoder.train()
+
+    print('pretrain for encoder is done.')
+
+    episode = 0
+    while episode < limit_episode:
+        #init
+        episode += 1
+        print('episode %d start.' % episode)
+        state = env.reset()
+        steps = 0
+        episode_end = False
+        need_steps = limit_steps
+
+        #episode start
+        while steps < limit_steps and not episode_end:
+
+            steps +=1 
+            action = []
+
+            state_encoded = encoder.output(state)
+
+            for i in range(ai_number):
+                action.append(ais[i].act(state_encoded))
+
+            state_after, reward, total_reward, episode_end = env.step(action)
+
+            state_tpo_encoded = encoder.output(state_after)
+
+            #to gain the new reward
+            if INCENTIVE_USED:
+                for i in range(ai_number):
+                    reward[i] = ais[i].return_new_reward(reward = reward[i], state_t=state_encoded, state_tpo=state_tpo_encoded, episode=episode, action=action[i])
+
+            #for debug
+            total_reward = np.array(reward).sum()
+            if steps % 1000 == 0:
+                print('action:', action, 'state_after:', state_after, 'reward:', reward, 'totol_reward:', total_reward)
+
+            if steps == limit_steps-1:
+                episode_end = True
+
+            for i in range(ai_number):
+                ais[i].store(state, action[i], reward[i], state_after, episode_end)
+                
+            state = state_after
+
+            episode_reward += total_reward
+
+            if episode_end:
+                need_steps = steps
+
+        order = [i for i in range(ai_number)]
+
+        if episode % 10 == 0: #every 10 episodes learn
+            if RANDOM:
+                random.shuffle(order)
+            for i in order:
+                ais[i].learn()
+            print('best rewards:', best_reward, 'best_steps:', best_steps)
+            print('now epsilon:', ais[0].epsilon)
+
+        if episode % 10==0:
+            if RANDOM:
+                random.shuffle(order)
+            for i in order:
+                ais[i].update_M()
+
+        if episode % 10 == 0: #every 100 episodes show
+            state = env.reset()
+            steps = 0
+            episode_end = False
+            r = 0
+            while steps < limit_steps and not episode_end:
+                steps+=1
+                action = []
+                state_encoded = encoder.output(state)
+                for i in range(ai_number):
+                    action.append(ais[i].check(state))
+
+                state_after, reward, total_reward, episode_end = env.step(action)
+                print('action:', action, 'state_after:', state_after, 'reward:', reward)
+                state = state_after
+
+        if episode % 1000 ==0: #every 1000 episodes export now
+            if SAVE:
+                saver.save(sess, 'multi-agent chainMDP' ,global_step=episode)
+            continue
+
+    print('exp ended. best reward:', best_reward, 'best_steps:', best_steps)
+    if RESULT_EXPORT:
+        f.close()
+
+
 

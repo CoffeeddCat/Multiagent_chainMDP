@@ -14,6 +14,10 @@ right_end_reward = 1000
 limit_steps = 4000
 limit_episode = 5000
 
+#about the encoder
+pretrain_episode = 1000
+pretrain_update_episode = 100
+
 GPU_USED = False
 INCENTIVE_USED = True
 RESULT_EXPORT = False
