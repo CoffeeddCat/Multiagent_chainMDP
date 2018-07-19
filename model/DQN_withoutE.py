@@ -54,8 +54,8 @@ class DQN:
         self.rewards = tf.placeholder(tf.float32, shape=[None, ], name='rewards')
 
         #some placeholder for M inputs
-        self.state_input_tpo = tf.placeholder(tf.float32,shape=[None, self.n_features], name='state_input_t')
-        self.state_plus_action_input = tf.placeholder(tf.float32,shape=[None, self.n_features+1], name='action_plus_state_input')
+        self.state_input_tpo = tf.placeholder(tf.float32,shape=[None, encoder_output_size], name='state_input_t')
+        self.state_plus_action_input = tf.placeholder(tf.float32,shape=[None, encoder_output_size+1], name='action_plus_state_input')
 
         with tf.variable_scope(self.scope):
             #networks about DQN
@@ -99,6 +99,7 @@ class DQN:
             return random.randint(0, 1)
         else:
             copy_state = copy.deepcopy(state)
+
             # exchange
             t = copy_state[self.order]
             copy_state[self.order] = copy_state[0]
@@ -178,15 +179,13 @@ class DQN:
 
     def return_new_reward(self, reward, state_t, state_tpo, episode, action):
         self.sess.run(self.update_emax, feed_dict={
-            self.state_input_t: np.array([state_t]),
             self.state_input_tpo: np.array([state_tpo]),
-            self.action_plus_state_input: np.array([state_t + [action]])
+            self.state_plus_action_input: np.array([state_t + [action]])
         })
 
         temp = self.sess.run(self.e_normalize, feed_dict={
-            self.state_input_t: np.array([state_t]),
             self.state_input_tpo: np.array([state_tpo]),
-            self.action_plus_state_input: np.array([state_t + [action]]),
+            self.state_plus_action_input: np.array([state_t + [action]]),
         })
 
         return reward + (self.beta / self.C) * temp
@@ -195,5 +194,5 @@ class DQN:
         state, action, reward, state_next, done, decays = self.process_data()
         self.sess.run(self.train_M, feed_dict={
             self.state_input_tpo: state_next,
-            self.action_plus_state_input: np.hstack((state, np.array([action]).T))
+            self.state_plus_action_input: np.hstack((state, np.array([action]).T))
         })

@@ -47,7 +47,7 @@ if __name__ == '__main__':
             n_actions=n_actions,
             model=mlp,
             hiddens=hiddens,
-            scope='number_' + str(i),
+            scope='agent_' + str(i),
             sess=sess,
             order=i,
             beta=beta,
