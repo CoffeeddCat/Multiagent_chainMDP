@@ -1,4 +1,3 @@
-#This encoder is without grad from the encoder.
 from config import *
 from model.mlp import mlp
 import tensorflow as tf
