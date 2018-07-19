@@ -1,3 +1,4 @@
+#this is the encoder with grad but not completed.
 from config import *
 from model.mlp import mlp
 import tensorflow as tf

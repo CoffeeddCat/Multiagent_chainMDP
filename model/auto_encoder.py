@@ -40,7 +40,7 @@ class auto_encoder:
 
         #not sure if the data is legal
 
-        self.sess.run([self.train_0,self.train_1] feed_dict = {
+        self.sess.run([self.train_0,self.train_1], feed_dict = {
             self.encoder_input: data
         })
 

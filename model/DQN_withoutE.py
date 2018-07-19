@@ -45,11 +45,7 @@ class DQN:
         self.epsilon_lower = epsilon_lower
         self.epsilon_decrement = epsilon_decrement
 
-        # share the encoder
-        self.state_input = state_input
-        self.encoder_output = tf.stop_gradient(encoder_output)
-
-        #some placeholder for inputs
+        #some placeholder for DQN inputs
         self.eval_input = tf.placeholder(tf.float32, shape=[None, self.n_features], name='eval_input')
         self.target_input = tf.placeholder(tf.float32, shape=[None, self.n_features], name='target_input')
         self.actions_selected = tf.placeholder(tf.int32, shape=[None, ], name='actions_selected')
@@ -57,7 +53,12 @@ class DQN:
         self.decays = tf.placeholder(tf.float32, shape=[None, ], name='decay')
         self.rewards = tf.placeholder(tf.float32, shape=[None, ], name='rewards')
 
+        #some placeholder for M inputs
+        self.state_input_tpo = tf.placeholder(tf.float32,shape=[None, self.n_features], name='state_input_t')
+        self.state_plus_action_input = tf.placeholder(tf.float32,shape=[None, self.n_features+1], name='action_plus_state_input')
+
         with tf.variable_scope(self.scope):
+            #networks about DQN
             self._epsilon = tf.get_variable(name='epsilon', dtype=tf.float32, initializer=1.0)
             self._epsilon_decrement = tf.constant(epsilon_decrement)
             self.update_epsilon = tf.assign(self._epsilon, self._epsilon - self._epsilon_decrement)
@@ -68,25 +69,13 @@ class DQN:
             self.target_output = tf.stop_gradient(
                 model(inputs=self.encoder_output, n_output=n_actions, scope='target_net', hiddens=hiddens))
 
-            # about encoder
-            self.encoder_temp_t = mlp(inputs=self.state_input_t, n_output=64, scope='encoder_temp_t', hiddens=[32, 64])
-            self.encoder_temp_tpo = tf.stop_gradient(
-                mlp(inputs=self.state_input_tpo, n_output=64, scope='encoder_temp_tpo', hiddens=[32, 64]))
-
-            self.encoder_output_t = mlp(inputs=self.encoder_temp_t, n_output=self.n_features, scope='encoder_t',
-                                        hiddens=[64, 32])
-            self.encoder_output_tpo = mlp(inputs=self.encoder_temp_tpo, n_output=self.n_features, scope='encoder_tpo',
-                                          hiddens=[64, 32])
-            self.predict_output = mlp(inputs=self.action_plus_state_input, n_output=64, scope='predict_output',
-                                      hiddens=[64, 32])
-
-            self.predict_mse = tf.reduce_sum(tf.square(self.encoder_temp_tpo - self.predict_output)) * self.n_features
+            #networks about M
+            self.predict_output = mlp(inputs=self.state_plus_action_input, n_output=64, scope='predict_output', hiddens=[64,32])
+            self.predict_mse = tf.reduce_sum(tf.square(self.state_input_tpo - self.predict_output)) * self.n_features
             self.emax = tf.get_variable(name='emax', dtype=tf.float32, initializer=1.0)
             self.update_emax = tf.assign(self.emax, tf.maximum(self.emax, self.predict_mse))
             self.e_normalize = tf.div(self.predict_mse, self.emax)
 
-            self.encoder_loss = tf.reduce_sum(tf.square(self.state_input_t - self.encoder_output_t))
-            self.train_encoder = tf.train.AdamOptimizer(learning_rate).minimize(self.encoder_loss)
             self.M_loss = self.predict_mse
             self.train_M = tf.train.AdamOptimizer(learning_rate).minimize(self.M_loss)
 
@@ -110,7 +99,6 @@ class DQN:
             return random.randint(0, 1)
         else:
             copy_state = copy.deepcopy(state)
-            # for debug
             # exchange
             t = copy_state[self.order]
             copy_state[self.order] = copy_state[0]
