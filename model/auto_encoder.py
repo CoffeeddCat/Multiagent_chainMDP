@@ -20,8 +20,8 @@ class auto_encoder:
         self.encoder_input = tf.placeholder(tf.float32, shape=[None, n_features], name='encoder_input')
         self.encoder_output = mlp(inputs=self.encoder_input, n_output=output_size, scope='encoder_output',
                                     hiddens=[16, 8])
-        self.decoder_output = mlp(inputs=self.encoder_output, n_output=n_features, scope='decoder_output')
-        self.encoder_output_ = tf.stop_gradient(self.encoder_output)
+        self.decoder_output = mlp(inputs=self.encoder_output, n_output=n_features, scope='decoder_output', hiddens=[8,16])
+        self.encoder_output_ = tf.stop_gradient(self.decoder_output)
 
         #some const
         self.learning_rate = learning_rate
@@ -32,16 +32,20 @@ class auto_encoder:
         self.memory = Memory(self.memory_size)
 
         #for train
-        self.loss = tf.reduce_mean(tf.squared_difference(self.encoder_input, self.decoder_output_))
+        self.loss = tf.reduce_mean(tf.squared_difference(self.encoder_input, self.decoder_output))
         self.train = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss)
  
-    def train(self):
+    def learn(self):
         data = self.memory.sample(self.batch_size)
 
-        #not sure if the data is legal
+        state = []
 
-        self.sess.run([self.train_0,self.train_1], feed_dict = {
-            self.encoder_input: data
+        for i in range(self.batch_size):
+            state.append(data[i][0])
+
+        print(state)
+        self.sess.run(self.train, feed_dict = {
+            self.encoder_input: state
         })
 
     def store(self, state):

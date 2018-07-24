@@ -59,10 +59,10 @@ class DQN:
         self.action_plus_state_input = tf.placeholder(tf.float32,shape=[None, self.n_features+1], name='action_plus_state_input')
 
         #share the first layers
-        self.common_eval_input = common_eval_input
-        self.common_target_input = common_target_input
-        self.common_eval_output = common_eval_output
-        self.common_target_output = common_target_output
+        #self.common_eval_input = common_eval_input
+        #self.common_target_input = common_target_input
+        #self.common_eval_output = common_eval_output
+        #self.common_target_output = common_target_output
 
         with tf.variable_scope(self.scope):
             self._epsilon = tf.get_variable(name='epsilon', dtype=tf.float32, initializer=1.0)

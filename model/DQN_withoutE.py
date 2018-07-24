@@ -20,8 +20,6 @@ class DQN:
             hiddens,
             beta,
             C,
-            state_input,
-            encoder_output,
             learning_rate=1e-5,
             decay=0.99,
             memory_size=20000000,
@@ -64,13 +62,13 @@ class DQN:
             self.update_epsilon = tf.assign(self._epsilon, self._epsilon - self._epsilon_decrement)
             self.reset_epsilon = tf.assign(self._epsilon, 1)
 
-            self.eval_output = model(inputs=self.encoder_output, n_output=n_actions, scope='eval_net',
+            self.eval_output = model(inputs=self.eval_input, n_output=n_actions, scope='eval_net',
                                      hiddens=hiddens)
             self.target_output = tf.stop_gradient(
-                model(inputs=self.encoder_output, n_output=n_actions, scope='target_net', hiddens=hiddens))
+                model(inputs=self.target_input, n_output=n_actions, scope='target_net', hiddens=hiddens))
 
             #networks about M
-            self.predict_output = mlp(inputs=self.state_plus_action_input, n_output=64, scope='predict_output', hiddens=[64,32])
+            self.predict_output = mlp(inputs=self.state_plus_action_input, n_output=encoder_output_size, scope='predict_output', hiddens=[64,32])
             self.predict_mse = tf.reduce_sum(tf.square(self.state_input_tpo - self.predict_output)) * self.n_features
             self.emax = tf.get_variable(name='emax', dtype=tf.float32, initializer=1.0)
             self.update_emax = tf.assign(self.emax, tf.maximum(self.emax, self.predict_mse))
@@ -106,7 +104,7 @@ class DQN:
             copy_state[0] = t
 
             action = self.sess.run(self.eval_output, feed_dict={
-                self.common_eval_input: np.array([copy_state])
+                self.eval_input: np.array([copy_state])
             })
 
             return np.argmax(action, axis=1)[0].tolist()
@@ -120,7 +118,7 @@ class DQN:
         copy_state[0] = t
 
         action = self.sess.run(self.eval_output, feed_dict={
-            self.common_eval_input: np.array([copy_state])
+            self.eval_input: np.array([copy_state])
         })
         return np.argmax(action, axis=1)[0].tolist()
 
@@ -128,10 +126,10 @@ class DQN:
         self.learn_times += 1
         state, action, reward, state_next, done, decays = self.process_data()
         self.sess.run(self.train, feed_dict={
-            self.common_eval_input: state,
+            self.eval_input: state,
             self.actions_selected: action,
             self.rewards: reward,
-            self.common_target_input: state_next,
+            self.target_input: state_next,
             self.done: done,
             self.decays: decays
         })

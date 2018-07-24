@@ -27,4 +27,4 @@ LOAD = False
 LOAD_FILE_PATH = ''
 RANDOM = False
 
-encoder_output_size = ai_number / 2
+encoder_output_size = int(ai_number / 2)

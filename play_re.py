@@ -87,7 +87,7 @@ if __name__ == '__main__':
             state = state_after
 
         if episode % pretrain_update_episode == 0:
-            encoder.train()
+            encoder.learn()
 
     print('pretrain for encoder is done.')
 
