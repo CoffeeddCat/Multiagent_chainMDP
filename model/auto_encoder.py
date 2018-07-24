@@ -19,8 +19,8 @@ class auto_encoder:
         #state_t
         self.encoder_input = tf.placeholder(tf.float32, shape=[None, n_features], name='encoder_input')
         self.encoder_output = mlp(inputs=self.encoder_input, n_output=output_size, scope='encoder_output',
-                                    hiddens=[16, 8])
-        self.decoder_output = mlp(inputs=self.encoder_output, n_output=n_features, scope='decoder_output', hiddens=[8,16])
+                                    hiddens=[32, 16, 8])
+        self.decoder_output = mlp(inputs=self.encoder_output, n_output=n_features, scope='decoder_output', hiddens=[8, 16, 32])
         self.encoder_output_ = tf.stop_gradient(self.decoder_output)
 
         #some const
@@ -43,7 +43,6 @@ class auto_encoder:
         for i in range(self.batch_size):
             state.append(data[i][0])
 
-        print(state)
         self.sess.run(self.train, feed_dict = {
             self.encoder_input: state
         })
@@ -51,11 +50,24 @@ class auto_encoder:
     def store(self, state):
         self.memory.store(np.array([state]))
 
-    @property
     def output(self, state):
-        return self.sess.run(self.encoder_output_, feed_dict = {
-            self.encoder_input: state
+
+        return self.sess.run(self.encoder_output, feed_dict = {
+            self.encoder_input: [np.array(state)]
             })
+
+    def output_loss(self):
+        data = self.memory.sample(self.batch_size)
+
+        state = []
+
+        for i in range(self.batch_size):
+            state.append(data[i][0])
+        print(state[0])
+        temp = self.sess.run(self.loss, feed_dict = {
+            self.encoder_input: state
+        })
+        print(temp)
 
     @property
     def full(self):

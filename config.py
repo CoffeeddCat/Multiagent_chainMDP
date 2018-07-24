@@ -1,5 +1,5 @@
 #settings:
-ai_number = 4
+ai_number = 8
 n_features = ai_number
 n_actions = 2
 chain_length = 3
@@ -15,7 +15,7 @@ limit_steps = 4000
 limit_episode = 5000
 
 #about the encoder
-pretrain_episode = 1000
+pretrain_episode = 100
 pretrain_update_episode = 100
 
 GPU_USED = False

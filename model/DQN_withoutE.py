@@ -34,6 +34,7 @@ class DQN:
         self.decay = decay
         self.model = model
         self.memory = Memory(memory_size)
+        self.memory_encoded = Memory(memory_size)
         self.order = order
         self.beta = beta
         self.C = C
@@ -52,7 +53,7 @@ class DQN:
         self.rewards = tf.placeholder(tf.float32, shape=[None, ], name='rewards')
 
         #some placeholder for M inputs
-        self.state_input_tpo = tf.placeholder(tf.float32,shape=[None, encoder_output_size], name='state_input_t')
+        self.state_input_tpo = tf.placeholder(tf.float32,shape=[None, encoder_output_size], name='state_input_tpo')
         self.state_plus_action_input = tf.placeholder(tf.float32,shape=[None, encoder_output_size+1], name='action_plus_state_input')
 
         with tf.variable_scope(self.scope):
@@ -156,9 +157,28 @@ class DQN:
 
         self.memory.store(np.array([state_copy, action, reward, state_after_copy, episode_ended]))
 
-    def process_data(self):
+    def store_encoded(self, state, action, reward, state_after, episode_ended):
+
+        state_copy = copy.deepcopy(state)
+        state_after_copy = copy.deepcopy(state_after)
+        # exchange
+        t = state_copy[self.order]
+        state_copy[self.order] = state_copy[0]
+        state_copy[0] = t
+
+        t = state_after_copy[self.order]
+        state_after_copy[self.order] = state_after_copy[0]
+        state_after_copy[0] = t
+
+        self.memory_encoded.store(np.array([state_copy, action, reward, state_after_copy, episode_ended]))
+
+    def process_data(self, encoded = False):
+        if encoded:
+            memory_source = self.memory_encoded
+        else:
+            memory_source = self.memory
         state, action, reward, state_next, done, decays = [], [], [], [], [], []
-        temp = self.memory.sample(self.batch_size)
+        temp = memory_source.sample(self.batch_size)
         for i in range(self.batch_size):
             state.append(temp[i][0])
             action.append(temp[i][1])
@@ -177,19 +197,19 @@ class DQN:
 
     def return_new_reward(self, reward, state_t, state_tpo, episode, action):
         self.sess.run(self.update_emax, feed_dict={
-            self.state_input_tpo: np.array([state_tpo]),
-            self.state_plus_action_input: np.array([state_t + [action]])
+            self.state_input_tpo: np.array(state_tpo),
+            self.state_plus_action_input: np.hstack((state_t,np.array([[action]])))
         })
 
         temp = self.sess.run(self.e_normalize, feed_dict={
-            self.state_input_tpo: np.array([state_tpo]),
-            self.state_plus_action_input: np.array([state_t + [action]]),
+            self.state_input_tpo: np.array(state_tpo),
+            self.state_plus_action_input: np.hstack((state_t,np.array([[action]])))
         })
 
         return reward + (self.beta / self.C) * temp
 
     def update_M(self):
-        state, action, reward, state_next, done, decays = self.process_data()
+        state, action, reward, state_next, done, decays = self.process_data(encoded=True)
         self.sess.run(self.train_M, feed_dict={
             self.state_input_tpo: state_next,
             self.state_plus_action_input: np.hstack((state, np.array([action]).T))

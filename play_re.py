@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     # share the encoder
     encoder = auto_encoder(
-        learning_rate=1e-5,
+        learning_rate=(1e-2)*5,
         memory_size=2000000,
         batch_size=2000,
         sess=sess,
@@ -61,6 +61,7 @@ if __name__ == '__main__':
     episode = 0
 
     #pretrain for the encoder
+    print('pretrain for encoder started.')
     while episode < pretrain_episode:
         episode += 1
         if episode % 1000 == 0:
@@ -73,9 +74,7 @@ if __name__ == '__main__':
         #episode start
         while steps < limit_steps and not episode_end:
             steps +=1 
-            action = []
-            for i in range(ai_number):
-                action.append(ais[i].act(state))
+            action = [random.randint(0, 1) for i in range(ai_number)]
 
             state_after, reward, total_reward, episode_end = env.step(action)
 
@@ -88,10 +87,11 @@ if __name__ == '__main__':
 
         if episode % pretrain_update_episode == 0:
             encoder.learn()
-
+            encoder.output_loss()
     print('pretrain for encoder is done.')
 
     episode = 0
+    print('train started.')
     while episode < limit_episode:
         #init
         episode += 1
@@ -99,6 +99,7 @@ if __name__ == '__main__':
         state = env.reset()
         steps = 0
         episode_end = False
+        episode_reward = 0
         need_steps = limit_steps
 
         #episode start
@@ -131,6 +132,7 @@ if __name__ == '__main__':
 
             for i in range(ai_number):
                 ais[i].store(state, action[i], reward[i], state_after, episode_end)
+                ais[i].store_encoded(state_encoded, action[i], reward[i], state_tpo_encoded, episode_end)
                 
             state = state_after
 
@@ -146,7 +148,6 @@ if __name__ == '__main__':
                 random.shuffle(order)
             for i in order:
                 ais[i].learn()
-            print('best rewards:', best_reward, 'best_steps:', best_steps)
             print('now epsilon:', ais[0].epsilon)
 
         if episode % 10==0:
