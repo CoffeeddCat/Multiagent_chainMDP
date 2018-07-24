@@ -118,7 +118,7 @@ if __name__ == '__main__':
                 state_encoded.append(encoder.output(state_re))
 
             for i in range(ai_number):
-                action.append(ais[i].act(state_encoded))
+                action.append(ais[i].act(state))
 
             state_after, reward, total_reward, episode_end = env.step(action)
 
