@@ -6,6 +6,7 @@ import numpy as np
 from config import *
 import random
 from model.auto_encoder import auto_encoder
+import copy
 
 if __name__ == '__main__':
 
@@ -108,19 +109,31 @@ if __name__ == '__main__':
             steps +=1 
             action = []
 
-            state_encoded = encoder.output(state)
+            state_encoded = []
+            for i in range(ai_number):
+                state_re = copy.deepcopy(state)
+                t = state_re[0]
+                state_re[0] = state_re[i]
+                state_re[i] = t
+                state_encoded.append(encoder.output(state_re))
 
             for i in range(ai_number):
                 action.append(ais[i].act(state_encoded))
 
             state_after, reward, total_reward, episode_end = env.step(action)
 
-            state_tpo_encoded = encoder.output(state_after)
+            state_tpo_encoded = []
+            for i in range(ai_number):
+                state_re = copy.deepcopy(state_after)
+                t = state_re[0]
+                state_re[0] = state_re[i]
+                state_re[i] = t
+                state_tpo_encoded.append(encoder.output(state_re))
 
             #to gain the new reward
             if INCENTIVE_USED:
                 for i in range(ai_number):
-                    reward[i] = ais[i].return_new_reward(reward = reward[i], state_t=state_encoded, state_tpo=state_tpo_encoded, episode=episode, action=action[i])
+                    reward[i] = ais[i].return_new_reward(reward = reward[i], state_t=state_encoded[i], state_tpo=state_tpo_encoded[i], episode=episode, action=action[i])
 
             #for debug
             total_reward = np.array(reward).sum()
@@ -132,7 +145,7 @@ if __name__ == '__main__':
 
             for i in range(ai_number):
                 ais[i].store(state, action[i], reward[i], state_after, episode_end)
-                ais[i].store_encoded(state_encoded, action[i], reward[i], state_tpo_encoded, episode_end)
+                ais[i].store_encoded(state_encoded[i], action[i], reward[i], state_tpo_encoded[i], episode_end)
                 
             state = state_after
 
@@ -150,7 +163,7 @@ if __name__ == '__main__':
                 ais[i].learn()
             print('now epsilon:', ais[0].epsilon)
 
-        if episode % 10==0:
+        if episode % 10 == 0:
             if RANDOM:
                 random.shuffle(order)
             for i in order:

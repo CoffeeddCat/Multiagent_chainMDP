@@ -158,19 +158,7 @@ class DQN:
         self.memory.store(np.array([state_copy, action, reward, state_after_copy, episode_ended]))
 
     def store_encoded(self, state, action, reward, state_after, episode_ended):
-
-        state_copy = copy.deepcopy(state)
-        state_after_copy = copy.deepcopy(state_after)
-        # exchange
-        t = state_copy[self.order]
-        state_copy[self.order] = state_copy[0]
-        state_copy[0] = t
-
-        t = state_after_copy[self.order]
-        state_after_copy[self.order] = state_after_copy[0]
-        state_after_copy[0] = t
-
-        self.memory_encoded.store(np.array([state_copy, action, reward, state_after_copy, episode_ended]))
+        self.memory_encoded.store(np.array([state, action, reward, state_after, episode_ended]))
 
     def process_data(self, encoded = False):
         if encoded:
@@ -210,6 +198,8 @@ class DQN:
 
     def update_M(self):
         state, action, reward, state_next, done, decays = self.process_data(encoded=True)
+        state_next = np.reshape(state_next, (-1, encoder_output_size))
+        state = np.reshape(state, (-1, encoder_output_size))
         self.sess.run(self.train_M, feed_dict={
             self.state_input_tpo: state_next,
             self.state_plus_action_input: np.hstack((state, np.array([action]).T))

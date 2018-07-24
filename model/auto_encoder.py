@@ -63,11 +63,11 @@ class auto_encoder:
 
         for i in range(self.batch_size):
             state.append(data[i][0])
-        print(state[0])
+
         temp = self.sess.run(self.loss, feed_dict = {
             self.encoder_input: state
         })
-        print(temp)
+        print('now loss:', temp)
 
     @property
     def full(self):
