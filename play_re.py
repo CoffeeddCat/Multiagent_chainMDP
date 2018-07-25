@@ -34,9 +34,9 @@ if __name__ == '__main__':
 
     # share the encoder
     encoder = auto_encoder(
-        learning_rate=(1e-2)*5,
+        learning_rate=1e-2,
         memory_size=2000000,
-        batch_size=2000,
+        batch_size=200000,
         sess=sess,
         output_size = encoder_output_size
     )
@@ -116,7 +116,7 @@ if __name__ == '__main__':
                 t = state_re[0]
                 state_re[0] = state_re[i]
                 state_re[i] = t
-                state_encoded.append(encoder.output(state_re))
+                state_encoded.append(encoder.output(trans_to_one_hot(state_re)))
 
             for i in range(ai_number):
                 action.append(ais[i].act(state))
@@ -129,7 +129,7 @@ if __name__ == '__main__':
                 t = state_re[0]
                 state_re[0] = state_re[i]
                 state_re[i] = t
-                state_tpo_encoded.append(encoder.output(state_re))
+                state_tpo_encoded.append(encoder.output(trans_to_one_hot(state_re)))
 
             #to gain the new reward
             if INCENTIVE_USED:
