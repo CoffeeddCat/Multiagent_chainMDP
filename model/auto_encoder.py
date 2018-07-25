@@ -69,6 +69,12 @@ class auto_encoder:
         })
         print('now loss:', temp)
 
+        print(state[0])
+        temp = self.sess.run(self.decoder_output, feed_dict = {
+            self.encoder_input:state
+        })
+        print(temp[0])
+
     @property
     def full(self):
         return self.memory.return_index() == self.memory_size-1

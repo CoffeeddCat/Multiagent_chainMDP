@@ -7,6 +7,7 @@ from config import *
 import random
 from model.auto_encoder import auto_encoder
 import copy
+from utils.utils import trans_to_one_hot
 
 if __name__ == '__main__':
 
@@ -82,7 +83,7 @@ if __name__ == '__main__':
             if steps == limit_steps-1:
                 episode_end = True
 
-            encoder.store(state)
+            encoder.store(trans_to_one_hot(state))
 
             state = state_after
 

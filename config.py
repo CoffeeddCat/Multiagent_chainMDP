@@ -1,8 +1,8 @@
 #settings:
 ai_number = 8
-n_features = ai_number
 n_actions = 2
 chain_length = 3
+n_features = ai_number * (chain_length + 1)
 hiddens = [64,64,32]
 EpochLength = 100
 
@@ -27,4 +27,4 @@ LOAD = False
 LOAD_FILE_PATH = ''
 RANDOM = False
 
-encoder_output_size = int(ai_number / 2)
+encoder_output_size = int(ai_number * (chain_length + 1) / 2)

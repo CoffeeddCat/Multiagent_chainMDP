@@ -1,4 +1,5 @@
 import numpy as np
+from config import *
 
 class Memory:
     def __init__(self, capacity):
@@ -16,3 +17,14 @@ class Memory:
 
     def return_index(self):
         return self.index
+
+def trans_to_one_hot(input):
+    input = np.array(input) + 1
+    output = []
+    for i in range(ai_number):
+        for j in range(chain_length+1):
+            if j==input[i]:
+                output.append(1)
+            else:
+                output.append(0)
+    return output
